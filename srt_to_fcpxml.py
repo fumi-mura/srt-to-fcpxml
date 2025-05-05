@@ -1,6 +1,7 @@
 import re
 import xml.etree.ElementTree as ET
-from datetime import timedelta
+from datetime import datetime
+import os
 
 
 def srt_time_to_fcpxml_time(srt_time):
@@ -21,7 +22,6 @@ def parse_srt(file_path):
     for block in blocks:
         lines = block.strip().splitlines()
         if len(lines) >= 3:
-            index = lines[0]
             times = lines[1]
             text = "\n".join(lines[2:])
             start, end = times.split(" --> ")
@@ -33,17 +33,18 @@ def parse_srt(file_path):
     return subtitles
 
 
-def create_fcpxml(subtitles, output_path="output.fcpxml"):
+def create_fcpxml(subtitles, output_path):
     """FCPXMLファイルを作成する"""
     ET.register_namespace('', "http://www.apple.com/fcpxml")
 
     fcpxml = ET.Element("fcpxml", version="1.10")
     resources = ET.SubElement(fcpxml, "resources")
-    format_elem = ET.SubElement(resources, "format", id="r1", name="FFVideoFormat1080p30", frameDuration="1/30s")
-    project = ET.SubElement(fcpxml, "library")
-    event = ET.SubElement(project, "event", name="Subtitles")
-    project_elem = ET.SubElement(event, "project", name="SRT Import")
-    sequence = ET.SubElement(project_elem, "sequence", format="r1", duration="60s")
+    ET.SubElement(resources, "format", id="r1", name="FFVideoFormat1080p30", frameDuration="1/30s")
+
+    library = ET.SubElement(fcpxml, "library")
+    event = ET.SubElement(library, "event", name="Subtitles")
+    project = ET.SubElement(event, "project", name="SRT Import")
+    sequence = ET.SubElement(project, "sequence", format="r1", duration="60s")
     spine = ET.SubElement(sequence, "spine")
 
     for i, sub in enumerate(subtitles):
@@ -60,8 +61,10 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="SRT to FCPXML converter")
     parser.add_argument("srt_file", help="Path to input .srt file")
-    parser.add_argument("output_file", nargs="?", default="output.fcpxml", help="Output .fcpxml file path")
     args = parser.parse_args()
 
+    today_str = datetime.now().strftime("%Y%m%d")
+    output_path = f"./outputs/{today_str}_outputs.fcpxml"
+
     subtitles = parse_srt(args.srt_file)
-    create_fcpxml(subtitles, args.output_file)
+    create_fcpxml(subtitles, output_path)
